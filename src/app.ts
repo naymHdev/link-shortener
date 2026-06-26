@@ -1,6 +1,7 @@
 import path from 'path';
 import express, { Express, NextFunction, Request, Response } from 'express';
-import { CodeTakenError, InMemoryLinkStore, LinkRecord, LinkStore } from './store';
+import { CodeTakenError, LinkRecord, LinkStore } from './store';
+import { createStore } from './createStore';
 import { isValidCode } from './shortcode';
 import { normalizeUrl } from './url';
 
@@ -30,7 +31,7 @@ function serializeRecord(
 }
 
 export function createApp(options: AppOptions = {}): Express {
-  const store = options.store ?? new InMemoryLinkStore();
+  const store = options.store ?? createStore();
   const baseUrl = options.baseUrl ?? process.env.BASE_URL;
 
   const app = express();
@@ -42,7 +43,7 @@ export function createApp(options: AppOptions = {}): Express {
   });
 
   // Create a short link.
-  app.post('/api/shorten', (req: Request, res: Response) => {
+  app.post('/api/shorten', async (req: Request, res: Response, next: NextFunction) => {
     const { url, code } = req.body ?? {};
 
     const normalized = normalizeUrl(url);
@@ -63,43 +64,56 @@ export function createApp(options: AppOptions = {}): Express {
     }
 
     try {
-      const record = store.create(normalized, customCode);
+      const record = await store.create(normalized, customCode);
       return res.status(201).json(serializeRecord(req, baseUrl, record));
     } catch (err) {
       if (err instanceof CodeTakenError) {
         return res.status(409).json({ error: err.message });
       }
-      throw err;
+      return next(err);
     }
   });
 
   // Inspect a short link's metadata without redirecting.
-  app.get('/api/links/:code', (req: Request, res: Response) => {
-    const record = store.get(req.params.code);
-    if (!record) {
-      return res.status(404).json({ error: 'Short code not found.' });
+  app.get('/api/links/:code', async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const record = await store.get(req.params.code);
+      if (!record) {
+        return res.status(404).json({ error: 'Short code not found.' });
+      }
+      return res.json(serializeRecord(req, baseUrl, record));
+    } catch (err) {
+      return next(err);
     }
-    return res.json(serializeRecord(req, baseUrl, record));
   });
 
   // List all short links.
-  app.get('/api/links', (req: Request, res: Response) => {
-    const links = store.all().map((record) => serializeRecord(req, baseUrl, record));
-    res.json({ links });
+  app.get('/api/links', async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const records = await store.all();
+      const links = records.map((record) => serializeRecord(req, baseUrl, record));
+      return res.json({ links });
+    } catch (err) {
+      return next(err);
+    }
   });
 
   // Redirect a short code to its target URL.
-  app.get('/:code', (req: Request, res: Response, next: NextFunction) => {
+  app.get('/:code', async (req: Request, res: Response, next: NextFunction) => {
     const { code } = req.params;
     if (!isValidCode(code)) {
       return next();
     }
 
-    const record = store.recordHit(code);
-    if (!record) {
-      return res.status(404).json({ error: 'Short code not found.' });
+    try {
+      const record = await store.recordHit(code);
+      if (!record) {
+        return res.status(404).json({ error: 'Short code not found.' });
+      }
+      return res.redirect(302, record.url);
+    } catch (err) {
+      return next(err);
     }
-    return res.redirect(302, record.url);
   });
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars

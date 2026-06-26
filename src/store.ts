@@ -9,13 +9,13 @@ export interface LinkRecord {
 
 export interface LinkStore {
   /** Creates a new short code for a URL, reusing an existing code if present. */
-  create(url: string, customCode?: string): LinkRecord;
+  create(url: string, customCode?: string): Promise<LinkRecord>;
   /** Looks up a record by its short code. */
-  get(code: string): LinkRecord | undefined;
+  get(code: string): Promise<LinkRecord | undefined>;
   /** Increments and returns the hit count for a code. */
-  recordHit(code: string): LinkRecord | undefined;
+  recordHit(code: string): Promise<LinkRecord | undefined>;
   /** Returns all stored records. */
-  all(): LinkRecord[];
+  all(): Promise<LinkRecord[]>;
 }
 
 export class CodeTakenError extends Error {
@@ -28,6 +28,9 @@ export class CodeTakenError extends Error {
 /**
  * An in-memory link store. Codes are generated sequentially and encoded as
  * base62. URLs are de-duplicated so the same URL always maps to one code.
+ *
+ * Note: state is lost when the process restarts. Use it for local development
+ * or tests; use {@link UpstashLinkStore} for serverless/production.
  */
 export class InMemoryLinkStore implements LinkStore {
   private readonly byCode = new Map<string, LinkRecord>();
@@ -38,7 +41,7 @@ export class InMemoryLinkStore implements LinkStore {
     this.counter = startId;
   }
 
-  create(url: string, customCode?: string): LinkRecord {
+  async create(url: string, customCode?: string): Promise<LinkRecord> {
     if (customCode !== undefined) {
       if (this.byCode.has(customCode)) {
         throw new CodeTakenError(customCode);
@@ -75,11 +78,11 @@ export class InMemoryLinkStore implements LinkStore {
     return record;
   }
 
-  get(code: string): LinkRecord | undefined {
+  async get(code: string): Promise<LinkRecord | undefined> {
     return this.byCode.get(code);
   }
 
-  recordHit(code: string): LinkRecord | undefined {
+  async recordHit(code: string): Promise<LinkRecord | undefined> {
     const record = this.byCode.get(code);
     if (!record) {
       return undefined;
@@ -88,7 +91,7 @@ export class InMemoryLinkStore implements LinkStore {
     return record;
   }
 
-  all(): LinkRecord[] {
+  async all(): Promise<LinkRecord[]> {
     return Array.from(this.byCode.values());
   }
 }
