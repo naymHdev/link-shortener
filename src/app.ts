@@ -35,6 +35,8 @@ export function createApp(options: AppOptions = {}): Express {
   const baseUrl = options.baseUrl ?? process.env.BASE_URL;
 
   const app = express();
+  // On Vercel/behind a proxy, trust X-Forwarded-* so req.protocol is https.
+  app.set('trust proxy', true);
   app.use(express.json());
   app.use(express.static(path.join(__dirname, '..', 'public')));
 
