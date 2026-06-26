@@ -1,48 +1,95 @@
-const form = document.getElementById('shorten-form');
+const form = document.getElementById('hero-form');
 const urlInput = document.getElementById('url');
 const codeInput = document.getElementById('code');
-const result = document.getElementById('result');
-const linksBody = document.getElementById('links-body');
+const shortenBtn = document.getElementById('shorten-btn');
+const resultZone = document.getElementById('result-zone');
+const linksList = document.getElementById('links-list');
 const emptyState = document.getElementById('empty-state');
+const toggleSlug = document.getElementById('toggle-slug');
+const slugWrap = document.getElementById('slug-wrap');
+const slugPrefix = document.getElementById('slug-prefix');
+const refreshBtn = document.getElementById('refresh-links');
 
-function showResult(message, isError) {
-  result.classList.remove('hidden');
-  result.classList.toggle('error', Boolean(isError));
-  result.innerHTML = message;
+slugPrefix.textContent = location.host + '/';
+
+function escapeHtml(str) {
+  return String(str).replace(
+    /[&<>"']/g,
+    (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c],
+  );
+}
+
+function qrSrc(url) {
+  return (
+    'https://api.qrserver.com/v1/create-qr-code/?size=160x160&margin=0&data=' +
+    encodeURIComponent(url)
+  );
+}
+
+const copyIcon =
+  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+
+function showSkeleton() {
+  resultZone.innerHTML = `
+    <div class="glass skeleton" role="status" aria-label="Generating short link">
+      <div class="sk sk-qr"></div>
+      <div class="sk-lines">
+        <div class="sk sk-line w40"></div>
+        <div class="sk sk-line w90"></div>
+        <div class="sk sk-line w60"></div>
+      </div>
+    </div>`;
+}
+
+function showError(message) {
+  resultZone.innerHTML = `<div class="glass result-card error">${escapeHtml(message)}</div>`;
+}
+
+function showResult(data) {
+  resultZone.innerHTML = `
+    <div class="glass result-card">
+      <div class="qr"><img src="${qrSrc(data.shortUrl)}" alt="QR code for ${escapeHtml(
+        data.shortUrl,
+      )}" loading="lazy" /></div>
+      <div class="result-main">
+        <div class="result-label">
+          <svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/><path d="m8 12 3 3 5-6"/>
+          </svg>
+          Short link ready
+        </div>
+        <a class="short-url" href="${data.shortUrl}" target="_blank" rel="noopener">${escapeHtml(
+          data.shortUrl,
+        )}</a>
+        <div class="result-target">${escapeHtml(data.url)}</div>
+      </div>
+      <button class="copy-btn" type="button" data-url="${escapeHtml(data.shortUrl)}">
+        ${copyIcon}<span>Copy</span>
+      </button>
+    </div>`;
 }
 
 function renderLinks(links) {
-  linksBody.innerHTML = '';
+  linksList.innerHTML = '';
   if (!links.length) {
-    emptyState.classList.remove('hidden');
+    emptyState.style.display = 'block';
     return;
   }
-  emptyState.classList.add('hidden');
+  emptyState.style.display = 'none';
 
-  for (const link of links) {
-    const row = document.createElement('tr');
-
-    const shortCell = document.createElement('td');
-    const shortLink = document.createElement('a');
-    shortLink.href = link.shortUrl;
-    shortLink.target = '_blank';
-    shortLink.rel = 'noopener';
-    shortLink.textContent = '/' + link.code;
-    shortCell.appendChild(shortLink);
-
-    const targetCell = document.createElement('td');
-    targetCell.textContent = link.url;
-    targetCell.title = link.url;
-    targetCell.style.maxWidth = '280px';
-    targetCell.style.overflow = 'hidden';
-    targetCell.style.textOverflow = 'ellipsis';
-    targetCell.style.whiteSpace = 'nowrap';
-
-    const hitsCell = document.createElement('td');
-    hitsCell.textContent = String(link.hits);
-
-    row.append(shortCell, targetCell, hitsCell);
-    linksBody.appendChild(row);
+  for (const link of links.slice().reverse()) {
+    const row = document.createElement('div');
+    row.className = 'link-row';
+    row.innerHTML = `
+      <a class="link-code" href="${link.shortUrl}" target="_blank" rel="noopener">/${escapeHtml(
+        link.code,
+      )}</a>
+      <span class="link-target" title="${escapeHtml(link.url)}">${escapeHtml(link.url)}</span>
+      <span class="link-hits">${link.hits} ${link.hits === 1 ? 'click' : 'clicks'}</span>
+      <button class="link-mini-copy" type="button" data-url="${escapeHtml(
+        link.shortUrl,
+      )}" aria-label="Copy short link">${copyIcon}</button>`;
+    linksList.appendChild(row);
   }
 }
 
@@ -52,18 +99,43 @@ async function loadLinks() {
     const data = await res.json();
     renderLinks(data.links ?? []);
   } catch {
-    // Network errors are non-fatal for the listing.
+    /* listing is non-critical */
   }
 }
+
+async function copyToClipboard(text, btn) {
+  try {
+    await navigator.clipboard.writeText(text);
+    btn.classList.add('copied');
+    const label = btn.querySelector('span');
+    const original = label ? label.textContent : null;
+    if (label) label.textContent = 'Copied!';
+    setTimeout(() => {
+      btn.classList.remove('copied');
+      if (label && original) label.textContent = original;
+    }, 1600);
+  } catch {
+    /* clipboard blocked */
+  }
+}
+
+toggleSlug.addEventListener('click', () => {
+  const open = !slugWrap.hidden;
+  slugWrap.hidden = open;
+  toggleSlug.textContent = open ? '+ Add custom slug' : '− Hide custom slug';
+  if (!open) codeInput.focus();
+});
 
 form.addEventListener('submit', async (event) => {
   event.preventDefault();
 
   const payload = { url: urlInput.value.trim() };
   const code = codeInput.value.trim();
-  if (code) {
-    payload.code = code;
-  }
+  if (code) payload.code = code;
+
+  shortenBtn.classList.add('loading');
+  shortenBtn.disabled = true;
+  showSkeleton();
 
   try {
     const res = await fetch('/api/shorten', {
@@ -74,39 +146,44 @@ form.addEventListener('submit', async (event) => {
     const data = await res.json();
 
     if (!res.ok) {
-      showResult(data.error || 'Something went wrong.', true);
+      showError(data.error || 'Something went wrong.');
       return;
     }
 
-    showResult(
-      `Short link: <a href="${data.shortUrl}" target="_blank" rel="noopener">${data.shortUrl}</a>` +
-        `<button class="copy-btn" type="button" data-url="${data.shortUrl}">Copy</button>`,
-      false,
-    );
+    showResult(data);
     urlInput.value = '';
     codeInput.value = '';
     loadLinks();
   } catch {
-    showResult('Could not reach the server.', true);
+    showError('Could not reach the server.');
+  } finally {
+    shortenBtn.classList.remove('loading');
+    shortenBtn.disabled = false;
   }
 });
 
-result.addEventListener('click', async (event) => {
-  const target = event.target;
-  if (target instanceof HTMLElement && target.classList.contains('copy-btn')) {
-    const url = target.dataset.url;
-    if (url) {
-      try {
-        await navigator.clipboard.writeText(url);
-        target.textContent = 'Copied!';
-        setTimeout(() => {
-          target.textContent = 'Copy';
-        }, 1500);
-      } catch {
-        target.textContent = 'Copy failed';
+document.addEventListener('click', (event) => {
+  const btn = event.target.closest('.copy-btn, .link-mini-copy');
+  if (btn && btn.dataset.url) copyToClipboard(btn.dataset.url, btn);
+});
+
+refreshBtn.addEventListener('click', loadLinks);
+
+// Scroll reveal
+const io = new IntersectionObserver(
+  (entries) => {
+    for (const entry of entries) {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('in');
+        io.unobserve(entry.target);
       }
     }
-  }
+  },
+  { threshold: 0.12 },
+);
+document.querySelectorAll('.reveal').forEach((el, i) => {
+  el.style.transitionDelay = Math.min(i * 60, 360) + 'ms';
+  io.observe(el);
 });
 
 loadLinks();

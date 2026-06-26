@@ -1,52 +1,169 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Link Shortener</title>
+    <meta
+      name="description"
+      content="Shorten links smarter — create fast, beautiful, trackable short links in seconds."
+    />
+    <title>Snip — Shorten Links Smarter</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
+      rel="stylesheet"
+    />
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
-    <main class="container">
-      <h1>🔗 Link Shortener</h1>
-      <p class="subtitle">Paste a long URL and get a short link.</p>
+    <!-- Animated background -->
+    <div class="bg" aria-hidden="true">
+      <div class="bg-grid"></div>
+      <div class="blob blob-1"></div>
+      <div class="blob blob-2"></div>
+      <div class="blob blob-3"></div>
+      <div class="bg-noise"></div>
+    </div>
 
-      <form id="shorten-form" autocomplete="off">
-        <input
-          type="url"
-          id="url"
-          name="url"
-          placeholder="https://example.com/very/long/link"
-          required
-        />
-        <input
-          type="text"
-          id="code"
-          name="code"
-          placeholder="custom code (optional)"
-          pattern="[0-9a-zA-Z]+"
-          title="Letters and digits only"
-        />
-        <button type="submit">Shorten</button>
-      </form>
+    <header class="nav">
+      <a class="brand" href="/">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+          </svg>
+        </span>
+        <span class="brand-name">Snip</span>
+      </a>
+      <nav class="nav-links">
+        <a href="#features">Features</a>
+        <a href="#links">Dashboard</a>
+        <a class="nav-cta" href="#hero-form">Get started</a>
+      </nav>
+    </header>
 
-      <div id="result" class="result hidden"></div>
+    <main>
+      <!-- HERO -->
+      <section class="hero" id="top">
+        <div class="pill reveal">
+          <span class="pill-dot"></span>
+          Fast · Trackable · Permanent links
+        </div>
 
-      <section class="links">
-        <h2>Recent links</h2>
-        <table id="links-table">
-          <thead>
-            <tr>
-              <th>Short</th>
-              <th>Target</th>
-              <th>Hits</th>
-            </tr>
-          </thead>
-          <tbody id="links-body"></tbody>
-        </table>
-        <p id="empty-state" class="muted">No links yet.</p>
+        <h1 class="hero-title reveal">
+          Shorten Links <span class="grad-text">Smarter</span>
+        </h1>
+        <p class="hero-sub reveal">
+          Create fast, beautiful, trackable short links in seconds.
+        </p>
+
+        <!-- Interactive shortener demo -->
+        <form id="hero-form" class="shortener glass reveal" autocomplete="off">
+          <div class="field-row">
+            <span class="field-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+              </svg>
+            </span>
+            <input
+              type="url"
+              id="url"
+              name="url"
+              placeholder="Paste a long URL…"
+              required
+            />
+            <button type="submit" id="shorten-btn" class="btn-primary">
+              <span class="btn-label">Shorten</span>
+              <span class="btn-spinner" aria-hidden="true"></span>
+            </button>
+          </div>
+          <button type="button" id="toggle-slug" class="slug-toggle">
+            + Add custom slug
+          </button>
+          <div class="slug-wrap" id="slug-wrap" hidden>
+            <span class="slug-prefix" id="slug-prefix">snip.sh/</span>
+            <input
+              type="text"
+              id="code"
+              name="code"
+              placeholder="my-link"
+              pattern="[0-9a-zA-Z]+"
+              title="Letters and digits only"
+            />
+          </div>
+        </form>
+
+        <!-- Result / skeleton mount -->
+        <div id="result-zone" class="result-zone" aria-live="polite"></div>
+
+        <p class="trust reveal">No signup · Free · Instant redirects</p>
+      </section>
+
+      <!-- FEATURES -->
+      <section class="features" id="features">
+        <h2 class="section-title reveal">Everything you need to share links</h2>
+        <p class="section-sub reveal">Premium tooling, zero friction.</p>
+
+        <div class="feature-grid">
+          <article class="feature glass reveal">
+            <div class="feature-icon i-fast">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+            </div>
+            <h3>Fast Redirects</h3>
+            <p>Edge-speed 302s so visitors land instantly, every time.</p>
+          </article>
+
+          <article class="feature glass reveal">
+            <div class="feature-icon i-perm">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            </div>
+            <h3>Permanent Links</h3>
+            <p>Backed by Redis — your short links never expire or reset.</p>
+          </article>
+
+          <article class="feature glass reveal">
+            <div class="feature-icon i-qr">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3M21 14v.01M14 21h.01M21 17v4h-4"/></svg>
+            </div>
+            <h3>QR Code Support</h3>
+            <p>Every link ships with a scannable QR — perfect for print.</p>
+          </article>
+
+          <article class="feature glass reveal">
+            <div class="feature-icon i-analytics">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg>
+            </div>
+            <h3>Analytics Ready</h3>
+            <p>Per-link hit counting built in, ready for deeper insights.</p>
+          </article>
+
+          <article class="feature glass reveal">
+            <div class="feature-icon i-slug">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M4 12h10M4 17h7"/><path d="M17 14l4 3-4 3"/></svg>
+            </div>
+            <h3>Custom URL Slugs</h3>
+            <p>Brand every link with a memorable, human-friendly slug.</p>
+          </article>
+        </div>
+      </section>
+
+      <!-- DASHBOARD / RECENT LINKS -->
+      <section class="links-section" id="links">
+        <div class="links-head reveal">
+          <h2 class="section-title">Your links</h2>
+          <button id="refresh-links" class="btn-ghost" type="button">Refresh</button>
+        </div>
+        <div id="links-list" class="links-list"></div>
+        <p id="empty-state" class="empty">No links yet — shorten your first one above.</p>
       </section>
     </main>
+
+    <footer class="footer">
+      Built by
+      <a href="https://naymhossen.vercel.app/" target="_blank" rel="noopener">Naym Hossen</a>
+    </footer>
 
     <script src="/app.js"></script>
   </body>
